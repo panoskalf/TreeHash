@@ -7,16 +7,17 @@
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-blue.svg)](https://cmake.org)
 [![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-brightgreen.svg)](#)
 
-Recursive directory SHA256 calculator. Efficiently computes hashes for all files in a directory tree with organized output.
-</div>
+Recursive directory SHA256 calculator with parallel processing. Efficiently computes hashes for all files in a directory tree using multi-threaded, size-based load balancing.
 
 ## Features
 
+- **Multi-threaded processing** with intelligent load balancing
 - **Cross-platform compatibility** (Windows, Linux, macOS)
-- Recursive directory traversal with chunked processing
-- Skips `.git` and `build` directories automatically
-- Clean directory-organized output format
-- Modern C++17 with robust error handling
+- Recursive directory traversal with efficient chunked file reading
+- Automatically skips `.git` and `build` directories
+- Clean directory-organized output with summary statistics
+- Robust error handling with detailed feedback
+- Memory efficient - processes large files in 64KB chunks
 
 ## Quick Start
 
@@ -33,10 +34,17 @@ cmake --build build
 
 **Example Output:**
 ```
+Hardware concurrency: 8 threads
+Starting thread 0
+Starting thread 1
+...
 Directory: /home/user/project:
-  main.cpp a1b2c3d4e5f6789a...
-  README.md f7e8d9c6b5a4321f...
-Total directories: 3, Total files: 12
+  main.cpp a1b2c3d4e5f6789a1b2c3d4e5f6789a1b2c3d4e5f6789a1b2c3d4e5f6789a
+  README.md f7e8d9c6b5a4321ff7e8d9c6b5a4321ff7e8d9c6b5a4321ff7e8d9c6b5a4321f
+...
+=== Summary ===
+Total files processed: 12
+Successfully hashed: 12
 ```
 
 ## Requirements
