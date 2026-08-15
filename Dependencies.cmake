@@ -24,3 +24,13 @@ if(NOT TARGET sha2::sha2)
     # Organize in IDE
     set_target_properties(sha2 PROPERTIES FOLDER "Dependencies/SHA2")
 endif()
+
+# cxxopts - header-only CLI option parser, provides its own CMake target
+FetchContent_Declare(
+    cxxopts
+    DOWNLOAD_EXTRACT_TIMESTAMP OFF
+    GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+    GIT_TAG v3.3.1
+)
+
+FetchContent_MakeAvailable(cxxopts)

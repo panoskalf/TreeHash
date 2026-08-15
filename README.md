@@ -11,12 +11,11 @@ Recursive directory SHA256 calculator with parallel processing. Efficiently comp
 
 ## Features
 
-- **Multi-threaded processing** with intelligent load balancing
+- **Multi-threaded processing** with intelligent, size-based load balancing
 - **Cross-platform compatibility** (Windows, Linux, macOS)
 - Recursive directory traversal with efficient chunked file reading
-- Automatically skips `.git` and `build` directories
-- Clean directory-organized output with summary statistics
-- Robust error handling with detailed feedback
+- Configurable directory exclusion (defaults to skipping `.git` and `build`)
+- `sha256sum`-compatible output - pipeable, scriptable, verifiable with `sha256sum -c`
 - Memory efficient - processes large files in 64KB chunks
 
 ## Quick Start
@@ -29,23 +28,27 @@ cmake --build build
 
 **Usage:**
 ```bash
-./TreeHash /path/to/directory
+./TreeHash <path-to-directory> [options]
+
+  -v, --verbose      Print per-thread progress to stderr
+  -x, --exclude arg  Directory names to skip (comma-separated or
+                      repeatable) (default: .git,build)
+  -h, --help         Print usage
 ```
 
 **Example Output:**
 ```
-Hardware concurrency: 8 threads
-Starting thread 0
-Starting thread 1
+$ ./TreeHash . > manifest.txt
+$ cat manifest.txt
+94906c8dcb0b88620af9f468597ca0217e96ed2c56a0e1ab8d23a56b2175e886  ./main.cpp
+ce09f62fb76394574f021b992b98d6cc249f3cf1c32cc79b8e6b320f881238e0  ./README.md
 ...
-Directory: /home/user/project:
-  main.cpp a1b2c3d4e5f6789a1b2c3d4e5f6789a1b2c3d4e5f6789a1b2c3d4e5f6789a
-  README.md f7e8d9c6b5a4321ff7e8d9c6b5a4321ff7e8d9c6b5a4321ff7e8d9c6b5a4321f
-...
-=== Summary ===
-Total files processed: 12
-Successfully hashed: 12
+$ sha256sum -c manifest.txt
+./main.cpp: OK
+./README.md: OK
 ```
 
+Progress and summary statistics print to stderr, so stdout stays a clean, redirectable checksum manifest.
+
 ## Requirements
-C++17 compiler, CMake 3.20+. Dependencies fetched automatically.
+C++17 compiler, CMake 3.20+. Dependencies (sha2, cxxopts) fetched automatically.

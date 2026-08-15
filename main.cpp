@@ -7,11 +7,10 @@
 #include <vector>
 #include <algorithm>
 #include <fstream>
-#include <map>
-#include <unordered_map>
 #include <iomanip>
 #include <optional>
 #include "sha-256.h"
+#include "cxxopts.hpp"
 
 // array long enough to hold sha256 in bytes
 using SHA256Hash = std::array<uint8_t, 32>;
@@ -48,29 +47,30 @@ std::ostream &operator<<(std::ostream &stream, const SHA256Hash &hash)
     return stream;
 }
 
-// organizes and prints file hashes grouped by their parent directory
+// prints file hashes to stdout in a flat, sorted, sha256sum-compatible format
+// (<hash>  <path>), so stdout can be redirected straight into a manifest file
 // only prints files that have been successfully hashed
 // @param files: vector of FileInfo containing paths, sizes, and optional hashes
-void printByDir(const std::vector<FileInfo>& files)
+void printSorted(const std::vector<FileInfo>& files)
 {
-    // organize files by dir
-    std::unordered_map<std::filesystem::path, std::vector<const FileInfo*>> by_dir;
-
-    for(size_t i = 0; i < files.size(); ++i)
+    std::vector<const FileInfo*> hashed_files;
+    for(const auto& file : files)
     {
-        by_dir[files[i].path.parent_path()].push_back(&files[i]);
+        if (file.hash.has_value())
+        {
+            hashed_files.push_back(&file);
+        }
     }
 
-    for(const auto& [dir, dir_files] : by_dir)
+    // sort by path - filesystem traversal order is not guaranteed stable
+    std::sort(hashed_files.begin(), hashed_files.end(),
+    [](const FileInfo* a, const FileInfo* b) {
+        return a->path < b->path;
+    });
+
+    for(const FileInfo* file_ptr : hashed_files)
     {
-        std::cout << "Directory: " << dir.string() << ":" << std::endl;
-        for(const FileInfo* file_ptr : dir_files)
-        {
-            if (file_ptr->hash.has_value())
-            {
-                std::cout << "  " << file_ptr->path.filename().string() << " " << *file_ptr->hash << std::endl;
-            }
-        }
+        std::cout << *file_ptr->hash << "  " << file_ptr->path.string() << std::endl;
     }
 }
 
@@ -115,7 +115,8 @@ std::optional<SHA256Hash> calculateFileHash(const std::filesystem::path &path)
 // sorts files by size (largest first) and assigns to least-loaded threads
 // @param files: vector of FileInfo to process (modified in-place with hashes)
 // @param num_threads: Maximum number of threads to use (will use fewer if less files)
-void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads)
+// @param verbose: if true, prints per-thread progress to stderr
+void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads, bool verbose)
 {
 
     if (files.empty()) return;
@@ -144,19 +145,28 @@ void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads)
         thread_workload[min_workload_idx] += sorted_files[i]->size;
     }
 
-    std::cout << "Hardware concurrency: " << num_threads << " threads" << std::endl;
+    if (verbose)
+    {
+        std::cerr << "Hardware concurrency: " << num_threads << " threads" << std::endl;
+    }
     // start the threads
     std::vector<std::thread> threads(num_threads);
     for (size_t i = 0; i < threads.size(); i++)
     {
-        // threads will be running when this prints so it has to be atomic too
-        std::cout << "Starting thread " + std::to_string(i) + "\n";
+        if (verbose)
+        {
+            // threads will be running when this prints so it has to be atomic too
+            std::cerr << "Starting thread " + std::to_string(i) + "\n";
+        }
         threads[i] = std::thread(
-            [&files_per_thread, i]() {
+            [&files_per_thread, i, verbose]() {
                 for(auto& file : files_per_thread[i])
                 {
-                    // atomic
-                    std::cout << "Thread " + std::to_string(i) + " calculating hash for " + file->path.string() + "\n";
+                    if (verbose)
+                    {
+                        // atomic
+                        std::cerr << "Thread " + std::to_string(i) + " calculating hash for " + file->path.string() + "\n";
+                    }
                     file->hash = calculateFileHash(file->path);
                 }
             });
@@ -171,15 +181,45 @@ void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads)
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
+    cxxopts::Options options("TreeHash", "Recursive directory SHA-256 calculator with parallel processing");
+    options.positional_help("<path-to-directory>");
+    options.add_options()
+        ("path", "Directory to hash", cxxopts::value<std::string>())
+        ("v,verbose", "Print per-thread progress to stderr", cxxopts::value<bool>()->default_value("false"))
+        ("x,exclude", "Directory names to skip (comma-separated or repeatable)", cxxopts::value<std::vector<std::string>>()->default_value(".git,build"))
+        ("h,help", "Print usage");
+    options.parse_positional({"path"});
+
+    cxxopts::ParseResult result;
+    try
     {
-        std::cout << "Usage: folder <path-to-folder>" << std::endl;
+        result = options.parse(argc, argv);
+    }
+    catch (const cxxopts::exceptions::exception &e)
+    {
+        std::cerr << "Error parsing options: " << e.what() << std::endl;
         return 1;
     }
 
+    if (result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        return 0;
+    }
+
+    if (!result.count("path"))
+    {
+        std::cerr << options.help() << std::endl;
+        return 1;
+    }
+
+    const std::string &target_path = result["path"].as<std::string>();
+    const bool verbose = result["verbose"].as<bool>();
+    const std::vector<std::string> exclude_dirs = result["exclude"].as<std::vector<std::string>>();
+
     std::error_code ec;
     // to iterate through the folder recursively
-    std::filesystem::recursive_directory_iterator rec_dir_iter(argv[1], ec);
+    std::filesystem::recursive_directory_iterator rec_dir_iter(target_path, ec);
     if (ec)
     {
         std::cerr << "Error: " << ec.message() << std::endl;
@@ -192,10 +232,9 @@ int main(int argc, char *argv[])
     // read the file info data recursively
     for (const auto &entry : rec_dir_iter)
     {
-        // skip these directories
+        // skip directories whose name matches --exclude
         if (entry.is_directory() &&
-            (entry.path().filename() == ".git" ||
-             entry.path().filename() == "build"))
+            std::find(exclude_dirs.begin(), exclude_dirs.end(), entry.path().filename().string()) != exclude_dirs.end())
         {
             rec_dir_iter.disable_recursion_pending();
             continue;
@@ -213,12 +252,12 @@ int main(int argc, char *argv[])
     const unsigned int MAX_THREADS = std::min(
         std::thread::hardware_concurrency(),
         static_cast<unsigned int>(files.size()));
-    hashFilesParallel(files, MAX_THREADS);
+    hashFilesParallel(files, MAX_THREADS, verbose);
 
-    // Print the results
-    printByDir(files);
+    // Print the results - stdout carries only the hash manifest, so it can be redirected/piped
+    printSorted(files);
 
-    // Print summary statistics
+    // Print summary statistics to stderr, so it doesn't pollute a redirected manifest
     size_t successful = 0;
     size_t failed = 0;
     for (const auto& file : files) {
@@ -226,11 +265,11 @@ int main(int argc, char *argv[])
         else ++failed;
     }
 
-    std::cout << "\n=== Summary ===" << std::endl;
-    std::cout << "Total files processed: " << files.size() << std::endl;
-    std::cout << "Successfully hashed: " << successful << std::endl;
+    std::cerr << "\n=== Summary ===" << std::endl;
+    std::cerr << "Total files processed: " << files.size() << std::endl;
+    std::cerr << "Successfully hashed: " << successful << std::endl;
     if (failed > 0) {
-        std::cout << "Failed: " << failed << std::endl;
+        std::cerr << "Failed: " << failed << std::endl;
     }
 
     return 0;

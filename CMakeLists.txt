@@ -12,4 +12,4 @@ include(Dependencies.cmake)
 
 # Create executable
 add_executable(TreeHash main.cpp)
-target_link_libraries(TreeHash PRIVATE sha2::sha2)
+target_link_libraries(TreeHash PRIVATE sha2::sha2 cxxopts::cxxopts)
