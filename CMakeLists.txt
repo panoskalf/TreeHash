@@ -13,6 +13,7 @@ include(Dependencies.cmake)
 # Create executable
 add_executable(TreeHash main.cpp)
 target_link_libraries(TreeHash PRIVATE sha2::sha2 cxxopts::cxxopts)
+target_compile_options(TreeHash PRIVATE -Wall -Wextra -Wpedantic)
 
 # CLI tests: a plain bash suite (tests/run_tests.sh) driving the compiled
 # binary, wired into ctest so `ctest --output-on-failure` is still the one
