@@ -1,0 +1,3 @@
+# Exclude the CLI test harness from GitHub's language detection so the repo
+# stats reflect the actual project (C++) rather than the shell test scripts.
+tests/** linguist-detectable=false
