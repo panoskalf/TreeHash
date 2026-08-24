@@ -15,7 +15,7 @@ Recursive directory SHA256 calculator with parallel processing. Efficiently comp
 - **Cross-platform compatibility** (Windows, Linux, macOS)
 - Recursive directory traversal with efficient chunked file reading
 - Configurable directory exclusion (defaults to skipping `.git` and `build`)
-- `sha256sum`-compatible output - pipeable, scriptable, verifiable with `sha256sum -c`
+- `sha256sum`-compatible output - pipeable, scriptable, verifiable with `sha256sum -c` or TreeHash's own `--check`
 - Memory efficient - processes large files in 64KB chunks
 
 ## Quick Start
@@ -33,6 +33,7 @@ cmake --build build
   -v, --verbose      Print per-thread progress to stderr
   -x, --exclude arg  Directory names to skip (comma-separated or
                       repeatable) (default: .git,build)
+  -c, --check arg    Check against a previously written manifest
   -h, --help         Print usage
 ```
 
@@ -46,9 +47,13 @@ ce09f62fb76394574f021b992b98d6cc249f3cf1c32cc79b8e6b320f881238e0  ./README.md
 $ sha256sum -c manifest.txt
 ./main.cpp: OK
 ./README.md: OK
+$ ./TreeHash . --check manifest.txt
+./main.cpp: OK
+./README.md: OK
+...
 ```
 
-Progress and summary statistics print to stderr, so stdout stays a clean, redirectable checksum manifest.
+Progress and summary statistics print to stderr, so stdout stays a clean, redirectable checksum manifest. `--check` exits non-zero if any file is `FAILED` or `MISSING`.
 
 ## Requirements
 C++17 compiler, CMake 3.20+. Dependencies (sha2, cxxopts) fetched automatically.
