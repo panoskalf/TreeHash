@@ -6,6 +6,9 @@
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-blue.svg)](https://cmake.org)
 [![Cross Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-brightgreen.svg)](#)
+[![Ubuntu CI](https://github.com/panoskalf/TreeHash/actions/workflows/ci-ubuntu.yml/badge.svg)](https://github.com/panoskalf/TreeHash/actions/workflows/ci-ubuntu.yml)
+[![macOS CI](https://github.com/panoskalf/TreeHash/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/panoskalf/TreeHash/actions/workflows/ci-macos.yml)
+[![Windows CI](https://github.com/panoskalf/TreeHash/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/panoskalf/TreeHash/actions/workflows/ci-windows.yml)
 
 Recursive directory SHA256 calculator with parallel processing. Efficiently computes hashes for all files in a directory tree using multi-threaded, size-based load balancing.
 

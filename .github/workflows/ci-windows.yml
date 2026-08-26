@@ -1,0 +1,14 @@
+name: CI (Windows)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      os: windows-latest
+      run_tests: false

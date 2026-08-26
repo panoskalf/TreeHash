@@ -1,0 +1,14 @@
+name: CI (macOS)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      os: macos-latest
+      run_tests: true
