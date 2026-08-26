@@ -3,7 +3,8 @@
 # assertion helpers so individual test cases stay short and declarative.
 #
 # Expects TREEHASH_BIN (path to the binary under test) and TESTS_DIR
-# (this directory) to already be exported by run_tests.sh.
+# (this directory) to already be set - CTest supplies both per-test via
+# the ENVIRONMENT property set in CMakeLists.txt.
 
 set -uo pipefail
 

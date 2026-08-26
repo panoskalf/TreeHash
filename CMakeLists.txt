@@ -15,8 +15,15 @@ add_executable(TreeHash main.cpp)
 target_link_libraries(TreeHash PRIVATE sha2::sha2 cxxopts::cxxopts)
 target_compile_options(TreeHash PRIVATE -Wall -Wextra -Wpedantic)
 
-# CLI tests: a plain bash suite (tests/run_tests.sh) driving the compiled
-# binary, wired into ctest so `ctest --output-on-failure` is still the one
-# command that runs everything, even with no C++ test framework underneath.
+# CLI tests: a plain bash suite (tests/cases/*.sh, sourcing tests/common.sh)
+# driving the compiled binary. Each case script is registered as its own
+# CTest test (not one aggregate test) so `ctest -R <case-name>` and CTest's
+# own pass/fail summary give per-case granularity.
 enable_testing()
-add_test(NAME cli-tests COMMAND bash ${CMAKE_SOURCE_DIR}/tests/run_tests.sh $<TARGET_FILE:TreeHash>)
+file(GLOB CLI_TEST_CASES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/tests/cases/*.sh)
+foreach(case_script ${CLI_TEST_CASES})
+    get_filename_component(case_name ${case_script} NAME_WE)
+    add_test(NAME ${case_name} COMMAND bash ${case_script})
+    set_tests_properties(${case_name} PROPERTIES
+        ENVIRONMENT "TREEHASH_BIN=$<TARGET_FILE:TreeHash>;TESTS_DIR=${CMAKE_SOURCE_DIR}/tests")
+endforeach()
