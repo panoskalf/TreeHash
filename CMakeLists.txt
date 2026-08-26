@@ -13,7 +13,14 @@ include(Dependencies.cmake)
 # Create executable
 add_executable(TreeHash main.cpp)
 target_link_libraries(TreeHash PRIVATE sha2::sha2 cxxopts::cxxopts)
-target_compile_options(TreeHash PRIVATE -Wall -Wextra -Wpedantic)
+
+# MSVC's cl.exe doesn't understand GCC-style flags
+# -Wextra gets passes as /Wextra resulting to an error 
+if(MSVC)
+    target_compile_options(TreeHash PRIVATE /W4)
+else()
+    target_compile_options(TreeHash PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 # CLI tests: a plain bash suite (tests/cases/*.sh, sourcing tests/common.sh)
 # driving the compiled binary. Each case script is registered as its own

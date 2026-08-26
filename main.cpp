@@ -255,7 +255,9 @@ std::vector<FileInfo> discoverFiles(const std::string& target_path, const std::v
     if (ec) return {};
 
     std::vector<FileInfo> files;
-    for (const auto& entry : rec_dir_iter) {
+    std::filesystem::recursive_directory_iterator end;
+    for (; rec_dir_iter != end; ++rec_dir_iter) {
+        const auto& entry = *rec_dir_iter;
         // skip directories whose name matches --exclude
         if (entry.is_directory() && std::find(exclude_dirs.begin(), exclude_dirs.end(),
                                               entry.path().filename().string()) != exclude_dirs.end()) {
