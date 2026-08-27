@@ -17,8 +17,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Cache FetchContent dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.fc-cache
+          key: ${{ runner.os }}-fetchcontent-${{ hashFiles('Dependencies.cmake') }}
+          restore-keys: |
+            ${{ runner.os }}-fetchcontent-
+
       - name: Configure
-        run: cmake -S . -B build
+        run: cmake -S . -B build -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc-cache
 
       - name: Build
         run: cmake --build build --parallel
