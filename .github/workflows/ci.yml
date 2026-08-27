@@ -1,19 +1,18 @@
-name: Build and Test
+name: CI
 
 on:
-  workflow_call:
-    inputs:
-      os:
-        required: true
-        type: string
-      run_tests:
-        required: false
-        type: boolean
-        default: true
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
-    runs-on: ${{ inputs.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -25,5 +24,5 @@ jobs:
         run: cmake --build build --parallel
 
       - name: Test
-        if: ${{ inputs.run_tests }}
+        if: matrix.os != 'windows-latest'
         run: ctest --test-dir build --output-on-failure
