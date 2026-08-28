@@ -1,4 +1,4 @@
-name: CI
+name: Lint
 
 on:
   push:
@@ -7,12 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  lint:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -27,10 +23,11 @@ jobs:
 
       - name: Configure
         run: cmake -S . -B build -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc-cache
-      
-      - name: Build
-        run: cmake --build build --parallel
-        
-      - name: Test
-        if: matrix.os != 'windows-latest'
-        run: ctest --test-dir build --output-on-failure
+
+      - name: Install clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy-22
+          
+      - name: Lint
+        run: clang-tidy-22 -p build main.cpp

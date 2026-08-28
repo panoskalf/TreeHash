@@ -1,0 +1,20 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  concurrency-*,
+  clang-analyzer-*,
+  readability-*,
+  portability-*,
+  modernize-*,
+  performance-*,
+  google-*,
+  -modernize-use-trailing-return-type
+WarningsAsErrors: '*'
+HeaderFilterRegex: ''
+FormatStyle: file
+CheckOptions:
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: '^(a|b|p|ec)$'
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: '^(f|ok|ec)$'

@@ -17,10 +17,11 @@
 #include "cxxopts.hpp"
 #include "sha-256.h"
 
+constexpr size_t SHA256_SIZE = static_cast<size_t>(32);
 // array long enough to hold sha256 in bytes
-using SHA256Hash = std::array<uint8_t, 32>;
+using SHA256Hash = std::array<uint8_t, SHA256_SIZE>;
 // size of file reading in chunks, needs to grow for larger files or might take too long
-constexpr size_t CHUNK_SIZE = 64 * 1024;
+constexpr size_t CHUNK_SIZE = static_cast<size_t>(64 * 1024);
 // number of hex characters used to print/parse a SHA256Hash (2 hex digits per byte)
 constexpr size_t HASH_HEX_CHARS = std::tuple_size_v<SHA256Hash> * 2;
 // a manifest line is <hash hex chars><2 spaces><at least 1 path char>
@@ -76,7 +77,9 @@ void printSorted(const std::vector<FileInfo>& files) {
               [](const FileInfo* a, const FileInfo* b) { return a->path < b->path; });
 
     for (const FileInfo* file_ptr : hashed_files) {
-        std::cout << *file_ptr->hash << "  " << file_ptr->path.string() << std::endl;
+        if (file_ptr->hash) {
+            std::cout << *file_ptr->hash << "  " << file_ptr->path.string() << '\n';
+        }
     }
 }
 
@@ -89,10 +92,12 @@ struct SummaryLine {
 };
 void printSummary(const std::string& title, const std::string& total_label, size_t total,
                   const std::vector<SummaryLine>& lines) {
-    std::cerr << "\n=== " << title << " ===" << std::endl;
-    std::cerr << total_label << ": " << total << std::endl;
+    std::cerr << "\n=== " << title << " ===" << '\n';
+    std::cerr << total_label << ": " << total << '\n';
     for (const auto& line : lines) {
-        if (line.always || line.count > 0) std::cerr << line.label << ": " << line.count << std::endl;
+        if (line.always || line.count > 0) {
+            std::cerr << line.label << ": " << line.count << '\n';
+        }
     }
 }
 
@@ -132,19 +137,22 @@ bool compareAndPrint(const std::vector<FileInfo>& file, const std::vector<Manife
         by_path[normalizePathForCompare(f.path, cwd)].expected = &f;
     }
 
-    size_t ok = 0, failed = 0, missing = 0, untracked = 0;
+    size_t ok = 0;
+    size_t failed = 0;
+    size_t missing = 0;
+    size_t untracked = 0;
     for (const auto& [normalized_path, match] : by_path) {
         if (match.expected == nullptr) {
-            std::cout << match.actual->path.string() << ": NOT IN MANIFEST" << std::endl;
+            std::cout << match.actual->path.string() << ": NOT IN MANIFEST" << '\n';
             ++untracked;
         } else if (match.actual == nullptr) {
-            std::cout << match.expected->path.string() << ": MISSING" << std::endl;
+            std::cout << match.expected->path.string() << ": MISSING" << '\n';
             ++missing;
         } else if (match.actual->hash.has_value() && match.actual->hash == match.expected->hash) {
-            std::cout << match.expected->path.string() << ": OK" << std::endl;
+            std::cout << match.expected->path.string() << ": OK" << '\n';
             ++ok;
         } else {
-            std::cout << match.expected->path.string() << ": FAILED" << std::endl;
+            std::cout << match.expected->path.string() << ": FAILED" << '\n';
             ++failed;
         }
     }
@@ -165,7 +173,7 @@ bool compareAndPrint(const std::vector<FileInfo>& file, const std::vector<Manife
 std::optional<SHA256Hash> calculateFileHash(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
-        std::cerr << "Error opening: " << path << std::endl;
+        std::cerr << "Error opening: " << path << '\n';
         return std::nullopt;
     }
 
@@ -185,7 +193,7 @@ std::optional<SHA256Hash> calculateFileHash(const std::filesystem::path& path) {
 
     // check if we exited due to error (not just EOF)
     if (file.bad()) {
-        std::cerr << "I/O error reading: " << path << std::endl;
+        std::cerr << "I/O error reading: " << path << '\n';
         return std::nullopt;
     }
 
@@ -210,8 +218,12 @@ ParseResult parseManifest(std::ifstream& file) {
     while (std::getline(file, line)) {
         ++line_num;
         // std::getline only strips '\n' - drop a trailing '\r' left by CRLF line endings
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        if (line.empty()) continue;
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (line.empty()) {
+            continue;
+        }
 
         // need at least HASH_HEX_CHARS hex chars + 2 spaces + 1 char of path
         bool malformed_line =
@@ -219,7 +231,7 @@ ParseResult parseManifest(std::ifstream& file) {
 
         SHA256Hash hash;
         for (size_t i = 0; !malformed_line && i < hash.size(); ++i) {
-            const char* start = line.data() + i * 2;
+            const char* start = line.data() + (i * 2);
             unsigned int byte = 0;
             const auto [ptr, ec] = std::from_chars(start, start + 2, byte, 16);
             // reject anything that doesn't consume exactly 2 hex digits
@@ -232,7 +244,7 @@ ParseResult parseManifest(std::ifstream& file) {
         }
 
         if (malformed_line) {
-            std::cerr << "Skipping malformed line " << line_num << " in check file" << std::endl;
+            std::cerr << "Skipping malformed line " << line_num << " in check file" << '\n';
             ++result.malformed;
             continue;
         }
@@ -252,7 +264,9 @@ ParseResult parseManifest(std::ifstream& file) {
 std::vector<FileInfo> discoverFiles(const std::string& target_path, const std::vector<std::string>& exclude_dirs,
                                     std::error_code& ec) {
     std::filesystem::recursive_directory_iterator rec_dir_iter(target_path, ec);
-    if (ec) return {};
+    if (ec) {
+        return {};
+    }
 
     std::vector<FileInfo> files;
     std::filesystem::recursive_directory_iterator end;
@@ -281,7 +295,9 @@ std::vector<FileInfo> discoverFiles(const std::string& target_path, const std::v
 // @param num_threads: Maximum number of threads to use (will use fewer if less files)
 // @param verbose: if true, prints per-thread progress to stderr
 void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads, bool verbose) {
-    if (files.empty()) return;
+    if (files.empty()) {
+        return;
+    }
     std::vector<FileInfo*> sorted_files;
     sorted_files.reserve(files.size());
     for (auto& file : files) {
@@ -293,16 +309,16 @@ void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads, b
 
     std::vector<std::vector<FileInfo*>> files_per_thread(num_threads);
     std::vector<std::uintmax_t> thread_workload(num_threads, 0);
-    for (size_t i = 0; i < sorted_files.size(); i++) {
+    for (auto& sorted_file : sorted_files) {
         auto min_iter = std::min_element(thread_workload.begin(), thread_workload.end());
         size_t min_workload_idx = std::distance(thread_workload.begin(), min_iter);
 
-        files_per_thread[min_workload_idx].push_back(sorted_files[i]);
-        thread_workload[min_workload_idx] += sorted_files[i]->size;
+        files_per_thread[min_workload_idx].push_back(sorted_file);
+        thread_workload[min_workload_idx] += sorted_file->size;
     }
 
     if (verbose) {
-        std::cerr << "Hardware concurrency: " << num_threads << " threads" << std::endl;
+        std::cerr << "Hardware concurrency: " << num_threads << " threads" << '\n';
     }
     // guards the verbose progress prints below - without it, concurrent std::cerr
     // writes from different threads can interleave mid-line into garbled output
@@ -311,13 +327,13 @@ void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads, b
     std::vector<std::thread> threads(num_threads);
     for (size_t i = 0; i < threads.size(); i++) {
         if (verbose) {
-            std::lock_guard<std::mutex> lock(log_mutex);
+            std::scoped_lock<std::mutex> lock(log_mutex);
             std::cerr << "Starting thread " << i << "\n";
         }
         threads[i] = std::thread([&files_per_thread, i, verbose, &log_mutex]() {
             for (auto& file : files_per_thread[i]) {
                 if (verbose) {
-                    std::lock_guard<std::mutex> lock(log_mutex);
+                    std::scoped_lock<std::mutex> lock(log_mutex);
                     std::cerr << "Thread " << i << " calculating hash for " << file->path.string() << "\n";
                 }
                 file->hash = calculateFileHash(file->path);
@@ -333,42 +349,59 @@ void hashFilesParallel(std::vector<FileInfo>& files, unsigned int num_threads, b
 int main(int argc, char* argv[]) {
     cxxopts::Options options("TreeHash", "Recursive directory SHA-256 calculator with parallel processing");
     options.positional_help("<path-to-directory>");
-    options.add_options()("path", "Directory to hash", cxxopts::value<std::string>())(
-        "v,verbose", "Print per-thread progress to stderr", cxxopts::value<bool>()->default_value("false"))(
-        "x,exclude", "Directory names to skip (comma-separated or repeatable)",
-        cxxopts::value<std::vector<std::string>>()->default_value(".git,build"))("h,help", "Print usage")(
-        "c,check", "Check against a previously written file", cxxopts::value<std::string>());
+    try {
+        options.add_options()("path", "Directory to hash", cxxopts::value<std::string>())(
+            "v,verbose", "Print per-thread progress to stderr", cxxopts::value<bool>()->default_value("false"))(
+            "x,exclude", "Directory names to skip (comma-separated or repeatable)",
+            cxxopts::value<std::vector<std::string>>()->default_value(".git,build"))("h,help", "Print usage")(
+            "c,check", "Check against a previously written manifest", cxxopts::value<std::string>());
+    } catch (const std::exception& e) {
+        std::cerr << "Developer error on literal strings: " << e.what() << '\n';
+        return 1;
+    }
     options.parse_positional({"path"});
 
     cxxopts::ParseResult result;
     try {
         result = options.parse(argc, argv);
-    } catch (const cxxopts::exceptions::exception& e) {
-        std::cerr << "Error parsing options: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing options: " << e.what() << '\n';
         return 1;
     }
 
-    if (result.count("help")) {
-        std::cout << options.help() << std::endl;
+    if (result.contains("help")) {
+        std::cout << options.help() << '\n';
         return 0;
     }
 
-    if (!result.count("path")) {
-        std::cerr << options.help() << std::endl;
+    if (!result.contains("path")) {
+        std::cerr << options.help() << '\n';
         return 1;
     }
 
-    const bool do_check = result.count("check") > 0;
-    const std::string& target_path = result["path"].as<std::string>();
-    const bool verbose = result["verbose"].as<bool>();
-    const std::vector<std::string> exclude_dirs = result["exclude"].as<std::vector<std::string>>();
+    const bool do_check = result.contains("check");
+    std::string target_path;
+    bool verbose = false;
+    std::vector<std::string> exclude_dirs;
+    std::string check_file_path;
+    try {
+        target_path = result["path"].as<std::string>();
+        verbose = result["verbose"].as<bool>();
+        exclude_dirs = result["exclude"].as<std::vector<std::string>>();
+        if (do_check) {
+            check_file_path = result["check"].as<std::string>();
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error reading options: " << e.what() << '\n';
+        return 1;
+    }
 
     std::vector<ManifestEntry> files_to_compare;
     size_t malformed = 0;
     if (do_check) {
-        std::ifstream check_file(result["check"].as<std::string>());
+        std::ifstream check_file(check_file_path);
         if (!check_file) {
-            std::cerr << "Error opening check file" << std::endl;
+            std::cerr << "Error opening check file" << '\n';
             return 2;
         }
         ParseResult parsed = parseManifest(check_file);
@@ -379,7 +412,7 @@ int main(int argc, char* argv[]) {
     std::error_code ec;
     std::vector<FileInfo> files = discoverFiles(target_path, exclude_dirs, ec);
     if (ec) {
-        std::cerr << "Error: " << ec.message() << std::endl;
+        std::cerr << "Error: " << ec.message() << '\n';
         return 1;
     }
 
@@ -399,10 +432,11 @@ int main(int argc, char* argv[]) {
         size_t successful = 0;
         size_t failed = 0;
         for (const auto& file : files) {
-            if (file.hash.has_value())
+            if (file.hash.has_value()) {
                 ++successful;
-            else
+            } else {
                 ++failed;
+            }
         }
 
         printSummary("Summary", "Total files processed", files.size(),
