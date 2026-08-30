@@ -6,6 +6,7 @@
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-blue.svg)](https://cmake.org)
 [![CI: Windows | Ubuntu | macOS](https://img.shields.io/github/actions/workflow/status/panoskalf/TreeHash/ci.yml?branch=main&label=CI%3A%20Windows%20%7C%20Ubuntu%20%7C%20macOS)](https://github.com/panoskalf/TreeHash/actions/workflows/ci.yml)
+[![clang-tidy](https://img.shields.io/github/actions/workflow/status/panoskalf/TreeHash/lint.yml?branch=main&label=clang-tidy)](https://github.com/panoskalf/TreeHash/actions/workflows/lint.yml)
 
 Recursive directory SHA256 calculator with parallel processing. Efficiently computes hashes for all files in a directory tree using multi-threaded, size-based load balancing.
 
@@ -28,13 +29,13 @@ cmake --build build
 
 **Usage:**
 ```bash
-./TreeHash <path-to-directory> [options]
+  TreeHash [OPTION...] <path-to-directory>
 
   -v, --verbose      Print per-thread progress to stderr
-  -x, --exclude arg  Directory names to skip (comma-separated or
-                      repeatable) (default: .git,build)
-  -c, --check arg    Check against a previously written manifest
+  -x, --exclude arg  Directory names to skip (comma-separated or 
+                     repeatable) (default: .git,build)
   -h, --help         Print usage
+  -c, --check arg    Check against a previously written manifest
 ```
 
 **Example Output:**
@@ -56,4 +57,4 @@ $ ./TreeHash . --check manifest.txt
 Progress and summary statistics print to stderr, so stdout stays a clean, redirectable checksum manifest. `--check` exits non-zero if any file is `FAILED` or `MISSING`.
 
 ## Requirements
-C++17 compiler, CMake 3.20+. Dependencies (sha2, cxxopts) fetched automatically.
+C++17 compiler, CMake 3.20+. Dependencies ([sha2](https://github.com/amosnier/sha-2), [cxxopts](https://github.com/jarro2783/cxxopts)) fetched automatically.
