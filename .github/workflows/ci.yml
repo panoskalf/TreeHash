@@ -27,10 +27,10 @@ jobs:
 
       - name: Configure
         run: cmake -S . -B build -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc-cache
-      
+
       - name: Build
-        run: cmake --build build --parallel
-        
+        run: cmake --build build --parallel --config Release
+
       - name: Test
         if: matrix.os != 'windows-latest'
         run: ctest --test-dir build --output-on-failure
