@@ -1,3 +1,6 @@
 .vscode/
 build/
 Testing/
+
+# personal planning doc, never intended for the repo
+TreeHash-roadmap.md
