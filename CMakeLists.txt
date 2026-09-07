@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 project(TreeHash)
 
+# default to Release when unset (single-config generators only; multi-config
+# generators like the Windows/Visual Studio one use CMAKE_CONFIGURATION_TYPES
+# and pick their config at build time via --config instead)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
