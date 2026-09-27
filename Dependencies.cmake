@@ -1,11 +1,12 @@
 include(FetchContent)
 
 # SHA-2 Library - Modern FetchContent approach
+# fetch master HEAD as of 2026-09
 FetchContent_Declare(
     sha2
     DOWNLOAD_EXTRACT_TIMESTAMP OFF
     GIT_REPOSITORY https://github.com/amosnier/sha-2.git
-    GIT_TAG master
+    GIT_TAG 565f65009bdd98267361b17d50cddd7c9beb3e6c
 )
 
 FetchContent_MakeAvailable(sha2)
